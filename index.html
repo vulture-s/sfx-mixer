@@ -16,6 +16,13 @@ h1{font-size:20px;margin:0}
 .sub{color:var(--mute);margin:2px 0 14px}
 .top{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px}
 @media(max-width:900px){.top{grid-template-columns:1fr}}
+.lvl{margin-top:6px;padding:6px 8px;background:#0b0c0d;border:1px solid #2a2c30;border-radius:6px;cursor:pointer;user-select:none}
+.lvl canvas{display:block;width:100%;height:46px}
+.lvl .num{display:grid;grid-template-columns:2.2em repeat(3,1fr);gap:2px 10px;margin-top:4px;font:600 11px/1.3 ui-monospace,Menlo,monospace;color:#c9d1c9;font-variant-numeric:tabular-nums}
+.lvl .num b{color:#6f7a70;font-weight:600}
+.lvl .num .clip{color:#ff3b30}
+footer.credit{max-width:1280px;margin:8px auto 0;padding:16px;border-top:1px solid var(--line);color:var(--mute);font-size:12px;line-height:1.7;display:flex;flex-wrap:wrap;gap:4px 18px}
+footer.credit a{color:var(--acc)}
 .scope{margin-top:10px;padding:6px;border-radius:10px;background:linear-gradient(160deg,#e9edf2,#9aa3ad 45%,#dfe4ea 55%,#7d8690);box-shadow:inset 0 1px 0 #fff,0 2px 6px rgba(0,0,0,.35)}
 .scope .bar{display:flex;align-items:center;gap:8px;padding:2px 4px 6px;font:700 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;color:#1b2430;text-transform:uppercase}
 .scope .bar .dot{width:8px;height:8px;border-radius:50%;background:#39ff14;box-shadow:0 0 6px #39ff14;animation:blink 1s steps(2) infinite}
@@ -112,7 +119,8 @@ textarea{width:100%;height:7em;font:12px/1.4 ui-monospace,Menlo,monospace;backgr
   <div>
     <video id="v" controls playsinline preload="auto" muted hidden></video>
     <div id="transport" class="transport"><button id="tp" class="pri" disabled>▶</button><input type="range" id="tseek" data-noknob="1" min="0" max="32" step="0.01" value="0"><span id="tt">0.00s</span></div>
-    <div class="meter" id="meter"><i></i></div>
+    <div class="lvl" id="lvl" title="點一下重置 MAX 與 CLIP"><canvas id="lvlCv"></canvas>
+      <div class="num"><b></b><b>PEAK dBFS</b><b>RMS dBFS</b><b>MAX</b><b>L</b><span id="pkL">−∞</span><span id="rmL">−∞</span><span id="mxL">−∞</span><b>R</b><span id="pkR">−∞</span><span id="rmR">−∞</span><span id="mxR">−∞</span></div></div>
     <div id="status">載入音檔中…</div>
     <div class="scope" id="scope">
       <div class="bar"><span class="dot"></span><span>Scope</span><select id="trackSel" aria-label="選曲"></select></div>
@@ -214,6 +222,12 @@ textarea{width:100%;height:7em;font:12px/1.4 ui-monospace,Menlo,monospace;backgr
   <div class="btns"><button id="apply">套用貼上的設定</button></div>
 </div>
 </main>
+<footer class="credit">
+  <span><b>SFX Mixer</b> · by Hevin Yeh (vulture.s)</span>
+  <span><a href="https://github.com/vulture-s/sfx-mixer" rel="noopener">github.com/vulture-s/sfx-mixer</a></span>
+  <span>MIT License · © 2026</span>
+  <span>Every demo sound is synthesised in code — no recordings, no third-party samples. Plain Web Audio, no libraries.</span>
+</footer>
 
 <script>
 (() => {
@@ -520,7 +534,7 @@ function build(ctx, offset, when) {
 window.__mixer = { applySettings: o => applySettings(o), lookahead: (b, c, l, r) => lookahead(b, c, l, r), build: (c, o, w) => build(c, o, w), get S() { return S; }, get perCue() { return perCue; }, buffers, get cues() { return cues; } };
 
 // ---------- realtime ----------
-let ctx = null, live = null, analyser = null;
+let ctx = null, live = null, analyser = null, splitL = null, anLR = null;
 // the tracks the menu offers (project folders next to index.html)
 const TRACKS = [{ p: "demo/", t: "Demo · SFX to picture" }, { p: "lofi/", t: "2 a.m. rain · lofi" }, { p: "nordic/", t: "Fjord, 4 a.m. · ambient" }];
 function stop() { if (live) { live.sources.forEach(s => { try { s.stop(); } catch (e) {} }); live.out.disconnect(); live = null; } }
@@ -531,7 +545,7 @@ function start() {
   ctx.resume().then(() => { if (ctx.state !== "running") status.textContent = "瀏覽器還沒放行聲音 —— 再按一次播放。"; });
   const when = ctx.currentTime + 0.06;
   live = build(ctx, v.currentTime, when);
-  live.out.connect(analyser); analyser.connect(ctx.destination);
+  live.out.connect(analyser); analyser.connect(ctx.destination); live.out.connect(splitL);
 }
 let rebuildT = null;
 function changed() {
@@ -570,17 +584,53 @@ function drawScope(a) {
   g.shadowBlur = 0;
   SCOPE.prev = ys;
 }
+// RAW level meter: instantaneous sample peak and RMS over the analyser window (2048 samples ≈ 43 ms), no ballistics.
+// Peak hold 1.5 s; CLIP latches above −0.1 dBFS; MAX is the running maximum. Click the meter to reset MAX and CLIP.
+const LV = { hold: [-Infinity, -Infinity], holdT: [0, 0], max: [-Infinity, -Infinity], clip: [false, false] };
+const fmtDbfs = x => x === -Infinity || x < -99 ? "−∞" : (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(1);
+function drawLevels(pk, rm) {
+  const cv = $("lvlCv"); if (!cv) return;
+  const dpr = window.devicePixelRatio || 1, W = Math.round(cv.clientWidth * dpr), H = Math.round(cv.clientHeight * dpr);
+  if (!W || !H) return;
+  if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+  const g = cv.getContext("2d"), LO = -60, LED = 14 * dpr, span = W - LED - 4 * dpr, x = d => Math.max(0, Math.min(1, (d - LO) / -LO)) * span;
+  g.fillStyle = "#0b0c0d"; g.fillRect(0, 0, W, H);
+  const bh = 12 * dpr, ys = [2 * dpr, H - bh - 2 * dpr];
+  g.font = `${9 * dpr}px ui-monospace,Menlo,monospace`; g.textAlign = "center"; g.textBaseline = "middle";
+  [-60, -48, -36, -24, -18, -12, -9, -6, -3, 0].forEach(t => { const tx = x(t); g.fillStyle = "#3a3d42"; g.fillRect(tx, ys[0], 1, H - 4 * dpr); g.fillStyle = "#7d857e"; g.fillText(String(t), Math.min(span - 6 * dpr, Math.max(8 * dpr, tx)), H / 2); });
+  const zones = [[LO, -18, "#2fbf4a"], [-18, -6, "#e6c229"], [-6, 0, "#ff3b30"]];
+  for (let c = 0; c < 2; c++) {
+    const y = ys[c];
+    g.fillStyle = "#16181b"; g.fillRect(0, y, span, bh);
+    for (const [lo, hi, col] of zones) {                       // peak: full height, translucent; RMS: solid, inset
+      const a = x(lo), b = x(hi); g.fillStyle = col;
+      const pw = Math.min(b, x(pk[c])) - a; if (pw > 0) { g.globalAlpha = 0.4; g.fillRect(a, y, pw, bh); }
+      const rw = Math.min(b, x(rm[c])) - a; if (rw > 0) { g.globalAlpha = 1; g.fillRect(a, y + 3 * dpr, rw, bh - 6 * dpr); }
+    }
+    g.globalAlpha = 1;
+    if (LV.hold[c] > LO) { g.fillStyle = "#ffffff"; g.fillRect(x(LV.hold[c]) - dpr, y, 2 * dpr, bh); }
+    g.fillStyle = LV.clip[c] ? "#ff3b30" : "#3a1512"; g.fillRect(W - LED, y, LED, bh);
+  }
+}
 function meterLoop() {
   if (analyser) {
     const a = new Float32Array(analyser.fftSize); analyser.getFloatTimeDomainData(a);
-    let pk = 0; for (const x of a) pk = Math.max(pk, Math.abs(x));
-    const dbv = 20 * Math.log10(pk + 1e-9);
-    const el = $("meter"); el.querySelector("i").style.width = Math.max(0, Math.min(100, (dbv + 48) / 48 * 100)) + "%";
-    el.classList.toggle("hot", dbv > -3);
     drawScope(a);
+    const pk = [-Infinity, -Infinity], rm = [-Infinity, -Infinity], now = performance.now();
+    if (anLR) anLR.forEach((an, c) => {
+      const d = new Float32Array(an.fftSize); an.getFloatTimeDomainData(d);
+      let p = 0, ss = 0; for (const s of d) { const q = Math.abs(s); if (q > p) p = q; ss += s * s; }
+      pk[c] = p > 0 ? 20 * Math.log10(p) : -Infinity; rm[c] = ss > 0 ? 10 * Math.log10(ss / d.length) : -Infinity;
+      if (pk[c] >= LV.hold[c] || now - LV.holdT[c] > 1500) { LV.hold[c] = pk[c]; LV.holdT[c] = now; }
+      if (pk[c] > LV.max[c]) LV.max[c] = pk[c];
+      if (pk[c] > -0.1) LV.clip[c] = true;
+    });
+    drawLevels(pk, rm);
+    ["L", "R"].forEach((ch, c) => { $("pk" + ch).textContent = fmtDbfs(pk[c]); $("rm" + ch).textContent = fmtDbfs(rm[c]); const m = $("mx" + ch); m.textContent = fmtDbfs(LV.max[c]) + (LV.clip[c] ? " CLIP" : ""); m.className = LV.clip[c] ? "clip" : ""; });
   } else drawScope(null);
   requestAnimationFrame(meterLoop);
 }
+$("lvl").onclick = () => { LV.max = [-Infinity, -Infinity]; LV.clip = [false, false]; };
 
 // ---------- UI ----------
 function bindSliders() {
@@ -877,14 +927,25 @@ knobLoop();
     resetState(); applySettings(V6); renderJSON();
     ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SR });
     analyser = ctx.createAnalyser(); analyser.fftSize = 2048;
+    // per-channel raw meters: splitter -> two analysers, pulled through a silent gain so every browser keeps them running
+    splitL = ctx.createChannelSplitter(2); anLR = [ctx.createAnalyser(), ctx.createAnalyser()];
+    { const z = ctx.createGain(); z.gain.value = 0; anLR.forEach((an, i) => { an.fftSize = 2048; splitL.connect(an, i); an.connect(z); }); z.connect(ctx.destination); }
     const files = {};
     if (P.bgm && P.bgm.src) files.bgm = base + P.bgm.src;
     cues.forEach(c => { if (c.hits) (c.pool || []).forEach(n => files[n] = base + "audio/" + n + ".wav"); else files[c.src] = base + "audio/" + c.src + ".wav"; });
     const names = Object.keys(files);
     let done = 0;
     await Promise.all(names.map(async n => {
-      const ab = await (await fetch(files[n])).arrayBuffer();
-      buffers[n] = await ctx.decodeAudioData(ab);
+      // one dropped request or a stalled decode used to leave the page on "載入音檔中…" forever: retry with a time limit
+      for (let k = 1; ; k++) {
+        try {
+          const r = await fetch(files[n] + (k > 1 ? (files[n].includes("?") ? "&" : "?") + "retry=" + k : ""), AbortSignal.timeout ? { signal: AbortSignal.timeout(30000) } : {});
+          if (!r.ok) throw new Error(r.status + " " + files[n]);
+          const ab = await r.arrayBuffer();
+          buffers[n] = await Promise.race([ctx.decodeAudioData(ab), new Promise((_, no) => setTimeout(() => no(new Error("decode timeout " + n)), 15000))]);
+          break;
+        } catch (e) { if (k >= 3) throw e; await new Promise(r => setTimeout(r, 400 * k)); }
+      }
       status.textContent = `載入音檔中… ${++done}/${names.length}`;
     }));
     renderStrips();
