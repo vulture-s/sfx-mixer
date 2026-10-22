@@ -27,6 +27,9 @@ footer.credit a{color:var(--acc)}
 .scope .bar{display:flex;align-items:center;gap:8px;padding:2px 4px 6px;font:700 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;color:#1b2430;text-transform:uppercase}
 .scope .bar .dot{width:8px;height:8px;border-radius:50%;background:#39ff14;box-shadow:0 0 6px #39ff14;animation:blink 1s steps(2) infinite}
 @keyframes blink{50%{opacity:.25}}
+.scope .ufile{font:700 11px ui-monospace,Menlo,monospace;letter-spacing:.06em;color:#000;background:#39ff14;border:2px solid #1b2430;border-radius:4px;padding:3px 8px;cursor:pointer}
+.dropov{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.72);color:#39ff14;font:700 20px/1.5 ui-monospace,Menlo,monospace;text-align:center;letter-spacing:.06em;pointer-events:none;border:4px dashed #39ff14}
+.dropov small{font-size:12px;color:#c9d1c9;letter-spacing:.02em}
 .scope select{margin-left:auto;font:700 11px ui-monospace,Menlo,monospace;letter-spacing:.06em;color:#39ff14;background:#000;border:2px solid #1b2430;border-radius:4px;padding:3px 6px;max-width:60%}
 .scope .screen{position:relative;background:#000;border-radius:6px;overflow:hidden;border:2px solid #1b2430}
 .scope canvas{display:block;width:100%;aspect-ratio:8/3;image-rendering:pixelated}
@@ -123,7 +126,7 @@ textarea{width:100%;height:7em;font:12px/1.4 ui-monospace,Menlo,monospace;backgr
       <div class="num"><b></b><b>PEAK dBFS</b><b>RMS dBFS</b><b>MAX</b><b>L</b><span id="pkL">−∞</span><span id="rmL">−∞</span><span id="mxL">−∞</span><b>R</b><span id="pkR">−∞</span><span id="rmR">−∞</span><span id="mxR">−∞</span></div></div>
     <div id="status">載入音檔中…</div>
     <div class="scope" id="scope">
-      <div class="bar"><span class="dot"></span><span>Scope</span><select id="trackSel" aria-label="選曲"></select></div>
+      <div class="bar"><span class="dot"></span><span>Scope</span><select id="trackSel" aria-label="選曲"></select><button id="pickFiles" class="ufile" title="音檔只在你的瀏覽器裡解碼，不會上傳">＋ 你的音效</button><input type="file" id="fileIn" multiple accept="audio/*,video/*,.json,.wav,.mp3,.m4a,.flac,.ogg,.aif,.aiff" hidden></div>
       <div class="screen"><canvas id="scopeCv" width="480" height="180"></canvas><div class="np" id="np"></div></div>
     </div>
   </div>
@@ -222,6 +225,7 @@ textarea{width:100%;height:7em;font:12px/1.4 ui-monospace,Menlo,monospace;backgr
   <div class="btns"><button id="apply">套用貼上的設定</button></div>
 </div>
 </main>
+<div id="dropOv" class="dropov" hidden><div>放開來載入你的音效<br><small>wav／mp3／m4a／flac… 可以一起放 cues.json、project.json、影片<br>只在這個瀏覽器裡解碼，不會上傳</small></div></div>
 <footer class="credit">
   <span><b>SFX Mixer</b> · by Hevin Yeh (vulture.s)</span>
   <span><a href="https://github.com/vulture-s/sfx-mixer" rel="noopener">github.com/vulture-s/sfx-mixer</a></span>
@@ -901,57 +905,128 @@ document.querySelectorAll('input[type=range]:not([data-noknob])').forEach(makeKn
 knobLoop();
 
 // ---------- load ----------
+// One path for both sources: a project folder on the server (?project=…) or files the visitor drops in.
+// getBuffer(name, path) returns the decoded AudioBuffer for a sample name / its project-relative path.
+let looping = false;
+function ensureCtx() {
+  if (ctx) return;
+  ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SR });
+  analyser = ctx.createAnalyser(); analyser.fftSize = 2048;
+  // per-channel raw meters: splitter -> two analysers, pulled through a silent gain so every browser keeps them running
+  splitL = ctx.createChannelSplitter(2); anLR = [ctx.createAnalyser(), ctx.createAnalyser()];
+  { const z = ctx.createGain(); z.gain.value = 0; anLR.forEach((an, i) => { an.fftSize = 2048; splitL.connect(an, i); an.connect(z); }); z.connect(ctx.destination); }
+}
+async function loadProject(P, cueList, getBuffer, videoUrl) {
+  $("tp").disabled = true;
+  if (!v.paused) v.pause();
+  stop(); v.currentTime = 0;
+  Object.keys(buffers).forEach(k => delete buffers[k]); procCache.clear();
+  Object.keys(DEFAULTS).filter(k => k.startsWith("g_")).forEach(k => delete DEFAULTS[k]);
+  PROJECT = { title: "SFX Mixer", groups: [], bgm: null, video: null, session: { global: {}, cues: {} }, ...P };
+  FPS = P.fps || 60; DUR = P.duration || 32;
+  document.title = (P.title || "SFX Mixer") + " · SFX Mixer"; $("np").textContent = "▸ " + (P.title || ""); $("title").textContent = (P.title || "SFX Mixer") + " · 混音器";
+  cues = cueList;
+  CUE_BY_ID = Object.fromEntries(cues.map(c => [c.id, c]));
+  // groups → VCA knobs + colours + defaults
+  GROUP_LABEL = {}; (P.groups || []).forEach(g => { GROUP_LABEL[g.id] = g.label || g.id; GROUP_COLOR[g.id] = g.color || "#888"; DEFAULTS["g_" + g.id] = 0; });
+  const gk = $("groupKnobs"); gk.innerHTML = "";
+  (P.groups || []).forEach(g => { const row = document.createElement("div"); row.className = "row"; row.innerHTML = `<label>${g.label || g.id}</label><input type="range" id="g_${g.id}" min="-24" max="12" step="0.5"><output></output>`; gk.appendChild(row); makeKnob(row.querySelector("input")); });
+  DEFAULTS.fadeFrom = Math.max(0, DUR - 2.4);
+  const ff = $("fadeFrom"); ff.min = Math.max(0, DUR - 8); ff.max = DUR;
+  $("tseek").max = DUR;
+  V6 = { global: {}, cues: {}, ...(P.session || {}) };
+  if (videoUrl) { if (v.useVideo) v.video.src = videoUrl; else v.attachVideo(videoUrl); $("transport").hidden = true; }
+  else { if (v.useVideo) { v.video.pause(); v.video.hidden = true; v.useVideo = false; } $("transport").hidden = false; }
+  resetState(); applySettings(V6); renderJSON();
+  ensureCtx();
+  const files = {};
+  if (P.bgm && P.bgm.src) files.bgm = P.bgm.src;
+  cues.forEach(c => { if (c.hits) (c.pool || []).forEach(n => files[n] = "audio/" + n + ".wav"); else files[c.src] = "audio/" + c.src + ".wav"; });
+  const names = Object.keys(files);
+  let done = 0;
+  await Promise.all(names.map(async n => {
+    buffers[n] = await getBuffer(n, files[n]);
+    status.textContent = `載入音檔中… ${++done}/${names.length}`;
+  }));
+  renderStrips();
+  $("tp").disabled = false;
+  if (!looping) { looping = true; meterLoop(); stripLoop(); }
+}
+// a server project: fetch with retries — one dropped request or a stalled decode used to leave the page on "載入音檔中…" forever
+async function fetchBuffer(url) {
+  for (let k = 1; ; k++) {
+    try {
+      const r = await fetch(url + (k > 1 ? (url.includes("?") ? "&" : "?") + "retry=" + k : ""), AbortSignal.timeout ? { signal: AbortSignal.timeout(30000) } : {});
+      if (!r.ok) throw new Error(r.status + " " + url);
+      return await decodeWithin(await r.arrayBuffer(), url);
+    } catch (e) { if (k >= 3) throw e; await new Promise(r => setTimeout(r, 400 * k)); }
+  }
+}
+const decodeWithin = (ab, name) => Promise.race([ctx.decodeAudioData(ab), new Promise((_, no) => setTimeout(() => no(new Error("decode timeout " + name)), 15000))]);
+
+// ---------- your own files (drag in, or pick) — decoded in this browser, never uploaded ----------
+const stem = f => f.name.replace(/\.[^.]+$/, "");
+const safeId = (t, used) => { let id = t.toLowerCase().replace(/[^a-z0-9一-鿿]+/g, "-").replace(/^-|-$/g, "") || "cue"; let k = id, i = 2; while (used.has(k)) k = id + "-" + i++; used.add(k); return k; };
+async function loadUserFiles(fileList) {
+  const all = [...fileList];
+  const audio = all.filter(f => /^audio\//.test(f.type) || /\.(wav|mp3|m4a|aac|flac|ogg|oga|opus|aif|aiff|caf|webm)$/i.test(f.name));
+  const video = all.find(f => /^video\//.test(f.type) || /\.(mp4|mov|m4v)$/i.test(f.name));
+  const jsonOf = name => all.find(f => f.name.toLowerCase() === name);
+  if (!audio.length) { status.textContent = "沒有看到音檔。支援 wav／mp3／m4a／flac／ogg（依瀏覽器而定）。"; return; }
+  ensureCtx(); ctx.resume();
+  status.textContent = `解碼你的 ${audio.length} 個音檔中…（只在這個瀏覽器裡，沒有上傳）`;
+  const dec = {}, bad = [];
+  await Promise.all(audio.map(async f => { try { dec[stem(f)] = await decodeWithin(await f.arrayBuffer(), f.name); } catch (e) { bad.push(f.name); } }));
+  const names = Object.keys(dec).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  if (!names.length) { status.textContent = "這些檔案瀏覽器解不開：" + bad.join("、"); return; }
+  let P = {}, list = null;
+  try { if (jsonOf("project.json")) P = JSON.parse(await jsonOf("project.json").text()); if (jsonOf("cues.json")) list = JSON.parse(await jsonOf("cues.json").text()); }
+  catch (e) { status.textContent = "JSON 讀不懂：" + e.message; return; }
+  const fps = P.fps || 60;
+  if (!P.bgm) { const b = names.find(n => /^(bgm|music|bed)/i.test(n)); if (b && !list) P.bgm = { src: "audio/" + b + ".wav", label: b }; }
+  const bgmName = P.bgm && P.bgm.src ? P.bgm.src.split("/").pop().replace(/\.[^.]+$/, "") : null;
+  if (!list) {                                       // no cue sheet: one cue per file, laid out one after another
+    const used = new Set(); let at = Math.round(0.5 * fps);
+    list = names.filter(n => n !== bgmName).map(n => {
+      const dur = Math.max(1, Math.ceil(dec[n].duration * fps));
+      const c = { id: safeId(n, used), at, src: n, label: n, group: "user", vol: 0.8, dur, space: "room", send: 0.05, start: 0, fade: 0, duck: null };
+      at += dur + Math.round(0.5 * fps); return c;
+    });
+  }
+  const end = Math.max(0, ...list.map(c => (c.hits ? c.hits[c.hits.length - 1] + fps : c.at + c.dur) / fps));
+  P = { title: "Your files", fps, groups: [{ id: "user", label: "Your files", color: "#2fb59a" }], session: { global: { amb: -70 }, cues: {} }, ...P,
+        duration: P.duration || Math.ceil(Math.max(4, end + 1, bgmName && dec[bgmName] ? dec[bgmName].duration : 0)) };
+  const lost = [];
+  await loadProject(P, list, async (n, path) => {
+    const k = n === "bgm" ? bgmName : n;
+    if (dec[k]) return dec[k];
+    lost.push(path); return ctx.createBuffer(2, 1, SR);           // keep going; say which ones are missing
+  }, video ? URL.createObjectURL(video) : null);
+  const sel = $("trackSel");
+  if (![...sel.options].some(o => o.value === "__user")) sel.insertAdjacentHTML("beforeend", '<option value="__user">Your files</option>');
+  sel.value = "__user";
+  status.textContent = `已載入你的 ${names.length} 個音檔（只在這個瀏覽器裡，沒有上傳）。` + (bad.length ? ` 解不開：${bad.join("、")}。` : "") + (lost.length ? ` cue 表要的檔沒找到：${lost.join("、")}。` : "");
+}
+{ const pick = $("pickFiles"), inp = $("fileIn"), ov = $("dropOv"); let depth = 0;
+  pick.onclick = () => inp.click();
+  inp.onchange = () => { if (inp.files.length) loadUserFiles(inp.files); inp.value = ""; };
+  const hasFiles = e => [...(e.dataTransfer && e.dataTransfer.types || [])].includes("Files");
+  addEventListener("dragenter", e => { if (!hasFiles(e)) return; e.preventDefault(); depth++; ov.hidden = false; });
+  addEventListener("dragover", e => { if (hasFiles(e)) e.preventDefault(); });
+  addEventListener("dragleave", e => { if (!hasFiles(e)) return; if (--depth <= 0) { depth = 0; ov.hidden = true; } });
+  addEventListener("drop", e => { if (!hasFiles(e)) return; e.preventDefault(); depth = 0; ov.hidden = true; loadUserFiles(e.dataTransfer.files); }); }
+
 (async () => {
   try {
     const base = new URLSearchParams(location.search).get("project") || "demo/";
     { const sel = $("trackSel");
       const list = TRACKS.some(t => t.p === base) ? TRACKS : TRACKS.concat([{ p: base, t: base }]);
       sel.innerHTML = list.map(t => `<option value="${t.p}"${t.p === base ? " selected" : ""}>${t.t}</option>`).join("");
-      sel.onchange = () => { location.search = "?project=" + sel.value; }; }
+      sel.onchange = () => { if (sel.value === "__user") return; location.search = "?project=" + sel.value; }; }
     const P = await (await fetch(base + "project.json")).json();
-    PROJECT = { ...PROJECT, ...P };
-    FPS = P.fps || 60; DUR = P.duration || 32;
-    document.title = (P.title || "SFX Mixer") + " · SFX Mixer"; $("np").textContent = "▸ " + (P.title || base); $("title").textContent = (P.title || "SFX Mixer") + " · 混音器";
-    cues = await (await fetch(base + (P.cues || "cues.json"))).json();
-    CUE_BY_ID = Object.fromEntries(cues.map(c => [c.id, c]));
-    // groups → VCA knobs + colours + defaults
-    GROUP_LABEL = {}; (P.groups || []).forEach(g => { GROUP_LABEL[g.id] = g.label || g.id; GROUP_COLOR[g.id] = g.color || "#888"; DEFAULTS["g_" + g.id] = 0; });
-    const gk = $("groupKnobs"); gk.innerHTML = "";
-    (P.groups || []).forEach(g => { const row = document.createElement("div"); row.className = "row"; row.innerHTML = `<label>${g.label || g.id}</label><input type="range" id="g_${g.id}" min="-24" max="12" step="0.5"><output></output>`; gk.appendChild(row); makeKnob(row.querySelector("input")); });
-    DEFAULTS.fadeFrom = Math.max(0, DUR - 2.4);
-    const ff = $("fadeFrom"); ff.min = Math.max(0, DUR - 8); ff.max = DUR;
-    $("tseek").max = DUR;
-    V6 = { global: {}, cues: {}, ...(P.session || {}) };
-    if (P.video) v.attachVideo(base + P.video); else $("transport").hidden = false;
-    if (P.video) $("transport").hidden = true;
-    resetState(); applySettings(V6); renderJSON();
-    ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: SR });
-    analyser = ctx.createAnalyser(); analyser.fftSize = 2048;
-    // per-channel raw meters: splitter -> two analysers, pulled through a silent gain so every browser keeps them running
-    splitL = ctx.createChannelSplitter(2); anLR = [ctx.createAnalyser(), ctx.createAnalyser()];
-    { const z = ctx.createGain(); z.gain.value = 0; anLR.forEach((an, i) => { an.fftSize = 2048; splitL.connect(an, i); an.connect(z); }); z.connect(ctx.destination); }
-    const files = {};
-    if (P.bgm && P.bgm.src) files.bgm = base + P.bgm.src;
-    cues.forEach(c => { if (c.hits) (c.pool || []).forEach(n => files[n] = base + "audio/" + n + ".wav"); else files[c.src] = base + "audio/" + c.src + ".wav"; });
-    const names = Object.keys(files);
-    let done = 0;
-    await Promise.all(names.map(async n => {
-      // one dropped request or a stalled decode used to leave the page on "載入音檔中…" forever: retry with a time limit
-      for (let k = 1; ; k++) {
-        try {
-          const r = await fetch(files[n] + (k > 1 ? (files[n].includes("?") ? "&" : "?") + "retry=" + k : ""), AbortSignal.timeout ? { signal: AbortSignal.timeout(30000) } : {});
-          if (!r.ok) throw new Error(r.status + " " + files[n]);
-          const ab = await r.arrayBuffer();
-          buffers[n] = await Promise.race([ctx.decodeAudioData(ab), new Promise((_, no) => setTimeout(() => no(new Error("decode timeout " + n)), 15000))]);
-          break;
-        } catch (e) { if (k >= 3) throw e; await new Promise(r => setTimeout(r, 400 * k)); }
-      }
-      status.textContent = `載入音檔中… ${++done}/${names.length}`;
-    }));
-    renderStrips();
-    $("tp").disabled = false;
-    status.textContent = "就緒。按播放開始；點軌道名稱會跳到那個 cue 前 1 秒試聽。";
-    meterLoop(); stripLoop();
+    const list = await (await fetch(base + (P.cues || "cues.json"))).json();
+    await loadProject(P, list, (n, path) => fetchBuffer(base + path), P.video ? base + P.video : null);
+    status.textContent = "就緒。按播放開始；點軌道名稱會跳到那個 cue 前 1 秒試聽。也可以把自己的音檔拖進這頁。";
   } catch (e) { status.textContent = "載入失敗：" + e.message; }
 })();
 })();

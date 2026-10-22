@@ -17,6 +17,16 @@ python3 -m http.server 8000
 
 Any static file server works. Opening `index.html` from disk won't work, because the browser blocks `fetch()` on `file://` URLs.
 
+## Use your own sounds (no install)
+
+Drag audio files onto the page, or press **＋ 你的音效** above the scope. They are decoded in your browser and never uploaded anywhere.
+
+- **Audio only**: each file becomes its own track, laid out one after another. A file whose name starts with `bgm`, `music` or `bed` becomes the music bed.
+- **With a cue sheet**: drop `cues.json` (and optionally `project.json` and a video) together with the audio files, and the page builds that project. Samples are matched by file name without the extension, so `thud.mp3` serves a cue whose `src` is `thud`.
+- Formats are whatever your browser can decode (wav, mp3, m4a and flac are safe bets).
+
+To keep a project or share it, use the folder layout below and serve it, or fork the repo.
+
 ## Your own project
 
 Create a folder next to `index.html` and add these files:
@@ -105,6 +115,8 @@ MIT — see [LICENSE](LICENSE).
 
   stutter、choke 這類節奏效果和 lo-fi，會先把整顆音效算好再播，所以即時聽到的跟匯出的檔案一模一樣。
 - **分類音量（VCA）**：每個分類一條總音量。另外還有：音效出現時壓低配樂、提前觸發讓起音略早於畫面、環境底層，匯出時會經過前視限幅器。
+
+**用自己的音效（不用安裝）**：把音檔拖進頁面，或按示波器上方的「＋ 你的音效」。檔案只在你的瀏覽器裡解碼，不會上傳。只丟音檔的話，每個檔自動變成一軌、依序排開；檔名以 `bgm`、`music` 或 `bed` 開頭的會當成配樂。連同 `cues.json`（可再加 `project.json` 和影片）一起丟，就會照 cue 表建出整個專案，檔名不含副檔名要跟 `src` 對得上。
 
 **執行**：在這個資料夾裡執行 `python3 -m http.server 8000`，然後開 `http://localhost:8000/`。要載入自己的專案，網址加上 `?project=資料夾/`。資料檔的格式見上面的英文說明。
 
