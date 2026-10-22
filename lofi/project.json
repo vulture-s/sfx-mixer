@@ -1,0 +1,118 @@
+{
+ "title": "2 a.m. rain",
+ "fps": 60,
+ "duration": 32,
+ "video": null,
+ "bgm": {
+  "src": "audio/rain.flac",
+  "label": "Rain, traffic, drone"
+ },
+ "groups": [
+  {
+   "id": "drums",
+   "label": "Drums",
+   "color": "#c43d2b"
+  },
+  {
+   "id": "keys",
+   "label": "Keys",
+   "color": "#7a6cff"
+  },
+  {
+   "id": "bass",
+   "label": "Bass",
+   "color": "#2a56c6"
+  },
+  {
+   "id": "melody",
+   "label": "Melody",
+   "color": "#e0a43b"
+  },
+  {
+   "id": "texture",
+   "label": "Vinyl",
+   "color": "#8a8a7a"
+  },
+  {
+   "id": "fx",
+   "label": "FX",
+   "color": "#2fb59a"
+  }
+ ],
+ "session": {
+  "global": {
+   "preRoll": 0,
+   "amb": -70,
+   "bgm": -16,
+   "master": -5,
+   "bgmFx": {
+    "hpf": 500,
+    "lpf": 5000,
+    "q": 0.7,
+    "drive": 0,
+    "bits": 16,
+    "sweep": 0
+   }
+  },
+  "cues": {
+   "keys": {
+    "fx": {
+     "lpf": 3200,
+     "drive": 7,
+     "bits": 9,
+     "decim": 3
+    }
+   },
+   "last-chord": {
+    "fx": {
+     "lpf": 3200,
+     "drive": 7,
+     "bits": 9,
+     "decim": 3,
+     "tape": 0.5
+    }
+   },
+   "snare": {
+    "fx": {
+     "bits": 12,
+     "lpf": 4500
+    }
+   },
+   "hats": {
+    "pan": 0.25,
+    "fx": {
+     "lpf": 7000,
+     "bits": 8
+    }
+   },
+   "dudu": {
+    "fx": {
+     "lpf": 16000,
+     "sweep": -1.5
+    }
+   },
+   "melody-call": {
+    "pan": -0.15,
+    "fx": {
+     "delay": "1/8",
+     "fb": 0.3,
+     "dmix": 0.22,
+     "lpf": 5000,
+     "bits": 10,
+     "decim": 2
+    }
+   },
+   "melody-answer": {
+    "pan": 0.15,
+    "fx": {
+     "delay": "1/8",
+     "fb": 0.3,
+     "dmix": 0.22,
+     "lpf": 5000,
+     "bits": 10,
+     "decim": 2
+    }
+   }
+  }
+ }
+}

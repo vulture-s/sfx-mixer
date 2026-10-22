@@ -737,7 +737,7 @@ $("wav").onclick = async () => {
     lookahead(buf, -3.6, 0.040, 0.200);
     const blob = wavBlob(buf), a = document.createElement("a");
     a.href = URL.createObjectURL(blob); a.download = "mix.wav"; a.click();
-    status.textContent = "wav 已下載（48 kHz／16-bit，已過前視限幅 −3.6 dBFS；最終響度我這邊再量兩遍補）。";
+    status.textContent = "wav 已下載（48 kHz／16-bit，已過前視限幅 −3.6 dBFS）。";
   } catch (e) { status.textContent = "算混音失敗：" + e.message; }
   btn.disabled = false;
 };

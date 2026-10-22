@@ -64,6 +64,18 @@ Tip for typing on screen: if `n` characters are revealed linearly between frames
 
 Everything in `demo/` was synthesised from scratch for this repository (clicks, ticks, a low thud, a filtered-noise whoosh, a knob, a hum, a chime, eight key clicks and a 120 BPM bed). It contains no recordings or third-party samples.
 
+## Second demo: 2 a.m. rain (lofi + ambience)
+
+Open `http://localhost:8000/?project=lofi/` for a 32-second lofi hip hop sketch built entirely out of cues. It shows that the same mixer can work as a small sequencer.
+
+- **Every part is its own track**: drums, Rhodes-style electric piano, bass, a two-phrase melody, vinyl crackle, a bright pulse and an electronic bass that both move from near to far, with rain, distant traffic and a low drone as the bed. Mute or solo any of them.
+- **The lo-fi character lives in the insert rack, not in the samples**: bit reduction and drive on the keys, 12-bit snare, 8-bit hats, a tempo delay on the melody, a downward filter sweep on the pulse and a tape stop on the last chord. Switch the inserts off to hear the dry version.
+- **Drums are `hits` cues**: swung 16ths are frames shifted by 4, ghost notes are the `soft` indices. With a pool of four bar-long samples, the keys and bass play the chord progression in order (Fmaj9, E7♯9, Am9, Gm9–C13).
+- **Shape**: rain alone, then the groove, then the drums drop out while the melody answers, then one last chord stops like tape.
+- 60 BPM, because the mixer's beat-synced modules assume 120 BPM and half of that keeps them on the grid.
+
+Every sound was synthesised from scratch. `bash lofi/src/build.sh` regenerates all of them (needs Python with numpy and scipy, plus ffmpeg).
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
@@ -91,5 +103,10 @@ MIT — see [LICENSE](LICENSE).
 **執行**：在這個資料夾裡執行 `python3 -m http.server 8000`，然後開 `http://localhost:8000/`。要載入自己的專案，網址加上 `?project=資料夾/`。資料檔的格式見上面的英文說明。
 
 **最重要的一個提醒**：音效庫的檔案在真正的起音前，常有 50–200 ms 的空白或雜音。請把這段長度量出來，填進 cue 的 `start` 欄位，不然聲音一定會比畫面晚。
+
+**第二個示範「2 a.m. rain」**：網址加 `?project=lofi/`。這是一段 32 秒的 lofi hip hop，全部用 cue 排出來，示範這台混音器也能當小型編曲器用。
+- 每個聲部都是獨立的一軌：鼓、電鋼琴、貝斯、旋律、黑膠底噪，還有兩條由近到遠的聲音（明亮的脈衝音、電子 bass）。雨聲、遠處車流和低頻嗡鳴當底層。
+- lofi 的質感大多來自 Insert 效果架，素材本身是乾淨的。把效果關掉就能聽到前後差別。
+- 素材全部用程式合成。執行 `bash lofi/src/build.sh` 可以重新產生（需要 numpy、scipy、ffmpeg）。
 
 `demo/` 裡的聲音全部用程式合成，沒有任何錄音或第三方素材。授權：MIT（見 [LICENSE](LICENSE)）。
