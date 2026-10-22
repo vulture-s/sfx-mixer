@@ -16,6 +16,15 @@ h1{font-size:20px;margin:0}
 .sub{color:var(--mute);margin:2px 0 14px}
 .top{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px}
 @media(max-width:900px){.top{grid-template-columns:1fr}}
+.scope{margin-top:10px;padding:6px;border-radius:10px;background:linear-gradient(160deg,#e9edf2,#9aa3ad 45%,#dfe4ea 55%,#7d8690);box-shadow:inset 0 1px 0 #fff,0 2px 6px rgba(0,0,0,.35)}
+.scope .bar{display:flex;align-items:center;gap:8px;padding:2px 4px 6px;font:700 11px/1 ui-monospace,Menlo,monospace;letter-spacing:.12em;color:#1b2430;text-transform:uppercase}
+.scope .bar .dot{width:8px;height:8px;border-radius:50%;background:#39ff14;box-shadow:0 0 6px #39ff14;animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:.25}}
+.scope select{margin-left:auto;font:700 11px ui-monospace,Menlo,monospace;letter-spacing:.06em;color:#39ff14;background:#000;border:2px solid #1b2430;border-radius:4px;padding:3px 6px;max-width:60%}
+.scope .screen{position:relative;background:#000;border-radius:6px;overflow:hidden;border:2px solid #1b2430}
+.scope canvas{display:block;width:100%;aspect-ratio:8/3;image-rendering:pixelated}
+.scope .screen::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.35) 0 1px,transparent 1px 3px)}
+.scope .np{position:absolute;left:8px;bottom:6px;font:700 10px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:#ff4fd8;text-shadow:0 0 6px #ff4fd8;text-transform:uppercase}
 video{width:100%;display:block;border:1px solid var(--line);border-radius:6px;background:#000}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:12px}
 .panel h2{font-size:13px;margin:0 0 8px;color:var(--mute);font-weight:600;letter-spacing:.04em}
@@ -105,6 +114,10 @@ textarea{width:100%;height:7em;font:12px/1.4 ui-monospace,Menlo,monospace;backgr
     <div id="transport" class="transport"><button id="tp" class="pri">▶</button><input type="range" id="tseek" data-noknob="1" min="0" max="32" step="0.01" value="0"><span id="tt">0.00s</span></div>
     <div class="meter" id="meter"><i></i></div>
     <div id="status">載入音檔中…</div>
+    <div class="scope" id="scope">
+      <div class="bar"><span class="dot"></span><span>Scope</span><select id="trackSel" aria-label="選曲"></select></div>
+      <div class="screen"><canvas id="scopeCv" width="192" height="72"></canvas><div class="np" id="np"></div></div>
+    </div>
   </div>
   <div>
     <div class="panel">
@@ -508,6 +521,8 @@ window.__mixer = { applySettings: o => applySettings(o), lookahead: (b, c, l, r)
 
 // ---------- realtime ----------
 let ctx = null, live = null, analyser = null;
+// the tracks the menu offers (project folders next to index.html)
+const TRACKS = [{ p: "demo/", t: "Demo · SFX to picture" }, { p: "lofi/", t: "2 a.m. rain · lofi" }];
 function stop() { if (live) { live.sources.forEach(s => { try { s.stop(); } catch (e) {} }); live.out.disconnect(); live = null; } }
 function start() {
   if (!ctx) return;
@@ -526,6 +541,24 @@ v.addEventListener("pause", stop);
 v.addEventListener("seeked", () => { if (!v.paused) start(); });
 v.addEventListener("ended", stop);
 
+// 8-bit oscilloscope: low-res canvas, chunky pixels, a magenta ghost of the previous frame
+const SCOPE = { prev: null };
+function drawScope(a) {
+  const cv = $("scopeCv"); if (!cv) return;
+  const g = cv.getContext("2d"), W = cv.width, H = cv.height, PX = 3, cols = Math.floor(W / PX), rows = Math.floor(H / PX);
+  g.fillStyle = "#000"; g.fillRect(0, 0, W, H);
+  g.fillStyle = "#0f2a12"; for (let x = 0; x < cols; x += 8) for (let y = 0; y < rows; y += 4) g.fillRect(x * PX + 1, y * PX + 1, 1, 1);
+  const ys = new Array(cols);
+  for (let c = 0; c < cols; c++) {
+    let v = 0;
+    if (a) { const i0 = Math.floor(c * a.length / cols), i1 = Math.floor((c + 1) * a.length / cols); for (let i = i0; i < i1; i++) if (Math.abs(a[i]) > Math.abs(v)) v = a[i]; }
+    ys[c] = Math.max(0, Math.min(rows - 1, Math.round((rows - 1) / 2 - v * 1.25 * (rows - 1) / 2)));
+  }
+  const plot = (arr, col) => { g.fillStyle = col; for (let c = 0; c < cols; c++) { const y0 = arr[c], y1 = c ? arr[c - 1] : y0; for (let y = Math.min(y0, y1); y <= Math.max(y0, y1); y++) g.fillRect(c * PX, y * PX, PX - 1, PX - 1); } };
+  if (SCOPE.prev) plot(SCOPE.prev, "rgba(255,79,216,.45)");
+  plot(ys, "#39ff14");
+  SCOPE.prev = ys;
+}
 function meterLoop() {
   if (analyser) {
     const a = new Float32Array(analyser.fftSize); analyser.getFloatTimeDomainData(a);
@@ -533,7 +566,8 @@ function meterLoop() {
     const dbv = 20 * Math.log10(pk + 1e-9);
     const el = $("meter"); el.querySelector("i").style.width = Math.max(0, Math.min(100, (dbv + 48) / 48 * 100)) + "%";
     el.classList.toggle("hot", dbv > -3);
-  }
+    drawScope(a);
+  } else drawScope(null);
   requestAnimationFrame(meterLoop);
 }
 
@@ -809,10 +843,14 @@ knobLoop();
 (async () => {
   try {
     const base = new URLSearchParams(location.search).get("project") || "demo/";
+    { const sel = $("trackSel");
+      const list = TRACKS.some(t => t.p === base) ? TRACKS : TRACKS.concat([{ p: base, t: base }]);
+      sel.innerHTML = list.map(t => `<option value="${t.p}"${t.p === base ? " selected" : ""}>${t.t}</option>`).join("");
+      sel.onchange = () => { location.search = "?project=" + sel.value; }; }
     const P = await (await fetch(base + "project.json")).json();
     PROJECT = { ...PROJECT, ...P };
     FPS = P.fps || 60; DUR = P.duration || 32;
-    document.title = (P.title || "SFX Mixer") + " · SFX Mixer"; $("title").textContent = (P.title || "SFX Mixer") + " · 混音器";
+    document.title = (P.title || "SFX Mixer") + " · SFX Mixer"; $("np").textContent = "▸ " + (P.title || base); $("title").textContent = (P.title || "SFX Mixer") + " · 混音器";
     cues = await (await fetch(base + (P.cues || "cues.json"))).json();
     CUE_BY_ID = Object.fromEntries(cues.map(c => [c.id, c]));
     // groups → VCA knobs + colours + defaults
