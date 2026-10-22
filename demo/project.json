@@ -1,0 +1,41 @@
+{
+ "title": "Demo session",
+ "fps": 60,
+ "duration": 32,
+ "video": null,
+ "bgm": {
+  "src": "audio/bed.flac",
+  "label": "Demo bed"
+ },
+ "groups": [
+  {
+   "id": "type",
+   "label": "Typing",
+   "color": "#7a6cff"
+  },
+  {
+   "id": "ui",
+   "label": "UI clicks",
+   "color": "#2a56c6"
+  },
+  {
+   "id": "hit",
+   "label": "Hits",
+   "color": "#c43d2b"
+  },
+  {
+   "id": "move",
+   "label": "Whooshes",
+   "color": "#e0a43b"
+  },
+  {
+   "id": "power",
+   "label": "Power / hum",
+   "color": "#e8743b"
+  }
+ ],
+ "session": {
+  "global": {},
+  "cues": {}
+ }
+}
