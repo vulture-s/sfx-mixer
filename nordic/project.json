@@ -1,0 +1,105 @@
+{
+ "title": "Fjord, 4 a.m.",
+ "fps": 60,
+ "duration": 60,
+ "video": null,
+ "bgm": {
+  "src": "audio/wind.flac",
+  "label": "Wind over ice"
+ },
+ "groups": [
+  {
+   "id": "piano",
+   "label": "Piano",
+   "color": "#7a6cff"
+  },
+  {
+   "id": "pad",
+   "label": "Pad",
+   "color": "#2a56c6"
+  },
+  {
+   "id": "drone",
+   "label": "Drone",
+   "color": "#3a3a4a"
+  },
+  {
+   "id": "field",
+   "label": "Snow",
+   "color": "#8a8a7a"
+  },
+  {
+   "id": "sparkle",
+   "label": "Bells",
+   "color": "#2fb59a"
+  }
+ ],
+ "session": {
+  "global": {
+   "preRoll": 0,
+   "amb": -70,
+   "bgm": -9,
+   "master": -7,
+   "hallRT": 3.5,
+   "hallSend": 1.3,
+   "verbLP": 6000,
+   "bgmFx": {
+    "hpf": 20,
+    "lpf": 7000,
+    "q": 0.7,
+    "drive": 0,
+    "bits": 16,
+    "sweep": 0
+   }
+  },
+  "cues": {
+   "piano-1": {
+    "pan": -0.1,
+    "fx": {
+     "delay": "1/8d",
+     "fb": 0.45,
+     "dmix": 0.28,
+     "lpf": 4800,
+     "drive": 2
+    }
+   },
+   "piano-2": {
+    "pan": 0.1,
+    "fx": {
+     "delay": "1/8d",
+     "fb": 0.45,
+     "dmix": 0.28,
+     "lpf": 4800,
+     "drive": 2
+    }
+   },
+   "piano-3": {
+    "fx": {
+     "delay": "1/8d",
+     "fb": 0.45,
+     "dmix": 0.28,
+     "lpf": 4800,
+     "drive": 2
+    }
+   },
+   "pad": {
+    "fx": {
+     "lpf": 2600
+    }
+   },
+   "steps": {
+    "pan": -0.3,
+    "fx": {
+     "lpf": 6000
+    }
+   },
+   "sparkle": {
+    "fx": {
+     "delay": "1/8d",
+     "fb": 0.5,
+     "dmix": 0.3
+    }
+   }
+  }
+ }
+}

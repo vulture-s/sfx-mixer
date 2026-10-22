@@ -24,7 +24,7 @@ h1{font-size:20px;margin:0}
 .scope .screen{position:relative;background:#000;border-radius:6px;overflow:hidden;border:2px solid #1b2430}
 .scope canvas{display:block;width:100%;aspect-ratio:8/3;image-rendering:pixelated}
 .scope .screen::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.35) 0 1px,transparent 1px 3px)}
-.scope .np{position:absolute;left:8px;bottom:6px;font:700 10px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:#ff4fd8;text-shadow:0 0 6px #ff4fd8;text-transform:uppercase}
+.scope .np{position:absolute;left:8px;bottom:6px;font:700 10px ui-monospace,Menlo,monospace;letter-spacing:.14em;color:#39ff14;text-shadow:0 0 6px #39ff14;text-transform:uppercase}
 video{width:100%;display:block;border:1px solid var(--line);border-radius:6px;background:#000}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:12px}
 .panel h2{font-size:13px;margin:0 0 8px;color:var(--mute);font-weight:600;letter-spacing:.04em}
@@ -111,12 +111,12 @@ textarea{width:100%;height:7em;font:12px/1.4 ui-monospace,Menlo,monospace;backgr
 <div class="top">
   <div>
     <video id="v" controls playsinline preload="auto" muted hidden></video>
-    <div id="transport" class="transport"><button id="tp" class="pri">▶</button><input type="range" id="tseek" data-noknob="1" min="0" max="32" step="0.01" value="0"><span id="tt">0.00s</span></div>
+    <div id="transport" class="transport"><button id="tp" class="pri" disabled>▶</button><input type="range" id="tseek" data-noknob="1" min="0" max="32" step="0.01" value="0"><span id="tt">0.00s</span></div>
     <div class="meter" id="meter"><i></i></div>
     <div id="status">載入音檔中…</div>
     <div class="scope" id="scope">
       <div class="bar"><span class="dot"></span><span>Scope</span><select id="trackSel" aria-label="選曲"></select></div>
-      <div class="screen"><canvas id="scopeCv" width="192" height="72"></canvas><div class="np" id="np"></div></div>
+      <div class="screen"><canvas id="scopeCv" width="480" height="180"></canvas><div class="np" id="np"></div></div>
     </div>
   </div>
   <div>
@@ -522,11 +522,13 @@ window.__mixer = { applySettings: o => applySettings(o), lookahead: (b, c, l, r)
 // ---------- realtime ----------
 let ctx = null, live = null, analyser = null;
 // the tracks the menu offers (project folders next to index.html)
-const TRACKS = [{ p: "demo/", t: "Demo · SFX to picture" }, { p: "lofi/", t: "2 a.m. rain · lofi" }];
+const TRACKS = [{ p: "demo/", t: "Demo · SFX to picture" }, { p: "lofi/", t: "2 a.m. rain · lofi" }, { p: "nordic/", t: "Fjord, 4 a.m. · ambient" }];
 function stop() { if (live) { live.sources.forEach(s => { try { s.stop(); } catch (e) {} }); live.out.disconnect(); live = null; } }
 function start() {
   if (!ctx) return;
-  stop(); ctx.resume();
+  stop();
+  if (navigator.audioSession) try { navigator.audioSession.type = "playback"; } catch (e) {}
+  ctx.resume().then(() => { if (ctx.state !== "running") status.textContent = "瀏覽器還沒放行聲音 —— 再按一次播放。"; });
   const when = ctx.currentTime + 0.06;
   live = build(ctx, v.currentTime, when);
   live.out.connect(analyser); analyser.connect(ctx.destination);
@@ -541,22 +543,31 @@ v.addEventListener("pause", stop);
 v.addEventListener("seeked", () => { if (!v.paused) start(); });
 v.addEventListener("ended", stop);
 
-// 8-bit oscilloscope: low-res canvas, chunky pixels, a magenta ghost of the previous frame
+// 8-bit oscilloscope: one phosphor green, fine 2 px steps, a dim ghost of the previous frame,
+// dot-matrix grid, and two reference lines at the export limiter's ceiling (−3.6 dBFS)
 const SCOPE = { prev: null };
 function drawScope(a) {
   const cv = $("scopeCv"); if (!cv) return;
-  const g = cv.getContext("2d"), W = cv.width, H = cv.height, PX = 3, cols = Math.floor(W / PX), rows = Math.floor(H / PX);
-  g.fillStyle = "#000"; g.fillRect(0, 0, W, H);
-  g.fillStyle = "#0f2a12"; for (let x = 0; x < cols; x += 8) for (let y = 0; y < rows; y += 4) g.fillRect(x * PX + 1, y * PX + 1, 1, 1);
+  const g = cv.getContext("2d"), W = cv.width, H = cv.height, PX = 2, cols = Math.floor(W / PX), rows = Math.floor(H / PX), mid = (rows - 1) / 2;
+  g.shadowBlur = 0; g.fillStyle = "#000"; g.fillRect(0, 0, W, H);
+  g.fillStyle = "#0c2410"; for (let x = 0; x < cols; x += 10) for (let y = 0; y < rows; y += 6) g.fillRect(x * PX, y * PX, 1, 1);
+  const ceil = Math.pow(10, -3.6 / 20), yOf = v => Math.round(mid - v * mid);
+  g.fillStyle = "#1f5a26";
+  for (const y of [yOf(ceil), yOf(-ceil)]) for (let c = 0; c < cols; c += 3) g.fillRect(c * PX, y * PX, PX, 1);
+  for (let c = 0; c < cols; c += 6) g.fillRect(c * PX, Math.round(mid) * PX, PX, 1);
   const ys = new Array(cols);
   for (let c = 0; c < cols; c++) {
     let v = 0;
     if (a) { const i0 = Math.floor(c * a.length / cols), i1 = Math.floor((c + 1) * a.length / cols); for (let i = i0; i < i1; i++) if (Math.abs(a[i]) > Math.abs(v)) v = a[i]; }
-    ys[c] = Math.max(0, Math.min(rows - 1, Math.round((rows - 1) / 2 - v * 1.25 * (rows - 1) / 2)));
+    ys[c] = Math.max(0, Math.min(rows - 1, yOf(v)));
   }
-  const plot = (arr, col) => { g.fillStyle = col; for (let c = 0; c < cols; c++) { const y0 = arr[c], y1 = c ? arr[c - 1] : y0; for (let y = Math.min(y0, y1); y <= Math.max(y0, y1); y++) g.fillRect(c * PX, y * PX, PX - 1, PX - 1); } };
-  if (SCOPE.prev) plot(SCOPE.prev, "rgba(255,79,216,.45)");
-  plot(ys, "#39ff14");
+  const plot = (arr, col, glow) => {
+    g.fillStyle = col; g.shadowColor = col; g.shadowBlur = glow;
+    for (let c = 0; c < cols; c++) { const y0 = arr[c], y1 = c ? arr[c - 1] : y0; for (let y = Math.min(y0, y1); y <= Math.max(y0, y1); y++) g.fillRect(c * PX, y * PX, PX, PX); }
+  };
+  if (SCOPE.prev) plot(SCOPE.prev, "rgba(57,255,20,.22)", 0);
+  plot(ys, "#39ff14", 6);
+  g.shadowBlur = 0;
   SCOPE.prev = ys;
 }
 function meterLoop() {
@@ -877,6 +888,7 @@ knobLoop();
       status.textContent = `載入音檔中… ${++done}/${names.length}`;
     }));
     renderStrips();
+    $("tp").disabled = false;
     status.textContent = "就緒。按播放開始；點軌道名稱會跳到那個 cue 前 1 秒試聽。";
     meterLoop(); stripLoop();
   } catch (e) { status.textContent = "載入失敗：" + e.message; }

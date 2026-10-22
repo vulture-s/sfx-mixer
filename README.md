@@ -76,6 +76,12 @@ Open `http://localhost:8000/?project=lofi/` for a 32-second lofi hip hop sketch 
 
 Every sound was synthesised from scratch. `bash lofi/src/build.sh` regenerates all of them (needs Python with numpy and scipy, plus ffmpeg).
 
+## Third demo: Fjord, 4 a.m. (ambient)
+
+`?project=nordic/` plays a 60-second ambient piece: footsteps in snow, a low D + A drone, a slow synth pad (Dm9 · B♭maj7♯11 · Fmaj9/C · Dsus2), and wind over ice as the bed. An electric-piano motif (D · A · F · E) comes three times; the third time the E never arrives. High bells close it out. Long hall reverb and a dotted-eighth delay on the piano come from the insert rack. `bash nordic/src/build.sh` regenerates every sound.
+
+The page's track menu (under the play bar) switches between the three demos.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
@@ -108,5 +114,7 @@ MIT — see [LICENSE](LICENSE).
 - 每個聲部都是獨立的一軌：鼓、電鋼琴、貝斯、旋律、黑膠底噪，還有兩條由近到遠的聲音（明亮的脈衝音、電子 bass）。雨聲、遠處車流和低頻嗡鳴當底層。
 - lofi 的質感大多來自 Insert 效果架，素材本身是乾淨的。把效果關掉就能聽到前後差別。
 - 素材全部用程式合成。執行 `bash lofi/src/build.sh` 可以重新產生（需要 numpy、scipy、ffmpeg）。
+
+**第三個示範「Fjord, 4 a.m.」**：網址加 `?project=nordic/`。這是 60 秒的北歐氛圍音樂：雪地腳步、低頻嗡鳴、緩慢的合成器 pad，風聲當底層。電鋼琴動機 D·A·F·E 出現三次，第三次最後那個 E 沒有出現。執行 `bash nordic/src/build.sh` 可以重新產生所有聲音。播放列下方的選單可以切換三個示範。
 
 `demo/` 裡的聲音全部用程式合成，沒有任何錄音或第三方素材。授權：MIT（見 [LICENSE](LICENSE)）。

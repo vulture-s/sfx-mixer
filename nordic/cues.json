@@ -1,0 +1,140 @@
+[
+ {
+  "id": "steps",
+  "at": 180,
+  "src": "pool",
+  "label": "Footsteps in snow",
+  "group": "field",
+  "vol": 0.45,
+  "dur": 630,
+  "space": "room",
+  "send": 0.05,
+  "start": 0,
+  "fade": 0,
+  "duck": null,
+  "pool": [
+   "step1",
+   "step2",
+   "step3",
+   "step4"
+  ],
+  "hits": [
+   180,
+   230,
+   274,
+   323,
+   367,
+   417,
+   461,
+   511,
+   554,
+   604,
+   648,
+   698,
+   742
+  ],
+  "soft": [
+   0,
+   1,
+   2,
+   3
+  ]
+ },
+ {
+  "id": "drone",
+  "at": 0,
+  "src": "drone",
+  "label": "Drone D + A",
+  "group": "drone",
+  "vol": 0.5,
+  "dur": 3600,
+  "space": "dry",
+  "send": 0.0,
+  "start": 0,
+  "fade": 0,
+  "duck": null
+ },
+ {
+  "id": "pad",
+  "at": 480,
+  "src": "pool",
+  "label": "Pad: Dm9 · B♭maj7♯11 · Fmaj9/C · Dsus2",
+  "group": "pad",
+  "vol": 0.42,
+  "dur": 3000,
+  "space": "hall",
+  "send": 0.18,
+  "start": 0,
+  "fade": 0,
+  "duck": null,
+  "pool": [
+   "pad-Dsus2",
+   "pad-Dm9",
+   "pad-Bbmaj7",
+   "pad-Fmaj7"
+  ],
+  "hits": [
+   480,
+   1380,
+   2280,
+   3000
+  ],
+  "soft": []
+ },
+ {
+  "id": "piano-1",
+  "at": 840,
+  "src": "piano-1",
+  "label": "Piano: the motif",
+  "group": "piano",
+  "vol": 0.5,
+  "dur": 660,
+  "space": "hall",
+  "send": 0.35,
+  "start": 0,
+  "fade": 0,
+  "duck": null
+ },
+ {
+  "id": "piano-2",
+  "at": 1710,
+  "src": "piano-2",
+  "label": "Piano: again, an octave up",
+  "group": "piano",
+  "vol": 0.45,
+  "dur": 660,
+  "space": "hall",
+  "send": 0.35,
+  "start": 0,
+  "fade": 0,
+  "duck": null
+ },
+ {
+  "id": "piano-3",
+  "at": 2580,
+  "src": "piano-3",
+  "label": "Piano: the last note never comes",
+  "group": "piano",
+  "vol": 0.45,
+  "dur": 480,
+  "space": "hall",
+  "send": 0.35,
+  "start": 0,
+  "fade": 0,
+  "duck": null
+ },
+ {
+  "id": "sparkle",
+  "at": 3030,
+  "src": "sparkle",
+  "label": "High bells",
+  "group": "sparkle",
+  "vol": 0.3,
+  "dur": 570,
+  "space": "hall",
+  "send": 0.4,
+  "start": 0,
+  "fade": 0,
+  "duck": null
+ }
+]
