@@ -90,7 +90,27 @@ Every sound was synthesised from scratch. `bash lofi/src/build.sh` regenerates a
 
 `?project=nordic/` plays a 60-second ambient piece: footsteps in snow, a low D + A drone, a slow synth pad (Dm9 · B♭maj7♯11 · Fmaj9/C · Dsus2), and wind over ice as the bed. An electric-piano motif (D · A · F · E) comes three times; the third time the E never arrives. High bells close it out. Long hall reverb and a dotted-eighth delay on the piano come from the insert rack. `bash nordic/src/build.sh` regenerates every sound.
 
-The page's track menu (under the play bar) switches between the three demos.
+## Forge versions: the same pieces, voiced by earshot
+
+`?project=lofi-forge/` and `?project=nordic-forge/` are the lofi and Fjord demos with the same cue sheet, groups and
+mix, but their drums and tuned voices rendered from the forge bank of [earshot](https://github.com/Leonxlnx/earshot)
+(MIT, Leon Lin; pinned at commit `4ac3d2ac2b151e1c23376f9ce7f3047a17050013`). Switch between a demo and its forge
+version in the track menu to compare hand-written synthesis with the forge, part by part.
+
+- Live: https://vulture-s.github.io/sfx-mixer/?project=lofi-forge/ and https://vulture-s.github.io/sfx-mixer/?project=nordic-forge/
+- **lofi-forge**: kicks `cut_hit/kick` and `cut_hit/sub` (landing at 48 Hz), hats `hover_tick/air`, `hover_tick/high`,
+  `pro_hover_tick/soft`, keys `pluck/kalimba_soft` and melody `pluck/kalimba`, one pitched note per chord tone and
+  melody note, with the original voicings, swing, tape wow and tremolo. Kept from the original synthesis: snare,
+  bass, dudu, electronic bass, vinyl crackle and the rain bed.
+- **nordic-forge**: the piano motif on `pluck/kalimba_ring` and the high bells on `mallet/glock`, same notes and timing,
+  the bells into the original hall. Kept from the original synthesis: pads, drone, snow steps and the wind bed.
+- The forged cues' base `vol` is raised by the measured loudness gap (ffmpeg ebur128, 3-7 dB: the forge parts have
+  sharper attacks at the same peak); everything else matches the original.
+- The bank renders with numpy and scipy only, and no `fit/*` entry is used, so these demos also contain no
+  recordings or third-party samples. `bash lofi-forge/src/build.sh` and `bash nordic-forge/src/build.sh` rebuild them
+  (Python with earshot, numpy and scipy, plus ffmpeg); each `make_*_forge.py` lists every part and its bank id.
+
+The page's track menu (under the play bar) switches between the demos.
 
 ## License
 
@@ -127,6 +147,13 @@ MIT — see [LICENSE](LICENSE).
 - lofi 的質感大多來自 Insert 效果架，素材本身是乾淨的。把效果關掉就能聽到前後差別。
 - 素材全部用程式合成。執行 `bash lofi/src/build.sh` 可以重新產生（需要 numpy、scipy、ffmpeg）。
 
-**第三個示範「Fjord, 4 a.m.」**：網址加 `?project=nordic/`。這是 60 秒的北歐氛圍音樂：雪地腳步、低頻嗡鳴、緩慢的合成器 pad，風聲當底層。電鋼琴動機 D·A·F·E 出現三次，第三次最後那個 E 沒有出現。執行 `bash nordic/src/build.sh` 可以重新產生所有聲音。播放列下方的選單可以切換三個示範。
+**第三個示範「Fjord, 4 a.m.」**：網址加 `?project=nordic/`。這是 60 秒的北歐氛圍音樂：雪地腳步、低頻嗡鳴、緩慢的合成器 pad，風聲當底層。電鋼琴動機 D·A·F·E 出現三次，第三次最後那個 E 沒有出現。執行 `bash nordic/src/build.sh` 可以重新產生所有聲音。播放列下方的選單可以切換各個示範。
+
+**forge 版（`lofi-forge/`、`nordic-forge/`）**：cue 表、分組、混音跟原版一樣，只把鼓和有音高的聲部換成 [earshot](https://github.com/Leonxlnx/earshot)（MIT，Leon Lin；鎖在 commit `4ac3d2ac2b151e1c23376f9ce7f3047a17050013`）forge 音色庫算出來的聲音，可以在選單裡跟原版切換 A/B。
+- 網址：<https://vulture-s.github.io/sfx-mixer/?project=lofi-forge/>、<https://vulture-s.github.io/sfx-mixer/?project=nordic-forge/>
+- **lofi-forge**：kick 用 `cut_hit/kick`、`cut_hit/sub`，hats 用 `hover_tick/air`、`hover_tick/high`、`pro_hover_tick/soft`，電鋼琴和旋律用 `pluck/kalimba_soft`、`pluck/kalimba` 照原音符逐音重做。snare、bass、dudu、電子 bass、黑膠底噪、雨聲維持原版合成。
+- **nordic-forge**：鋼琴動機用 `pluck/kalimba_ring`，高音鈴用 `mallet/glock`。pad、嗡鳴、雪地腳步、風聲維持原版合成。
+- forge 聲部的 cue `vol` 依實測響度差（ffmpeg ebur128，3–7 dB）調高，其他設定不變。
+- forge 只用 numpy／scipy 運算，也沒有用到 `fit/*` 條目，所以這兩個示範一樣沒有任何錄音或第三方素材。
 
 `demo/` 裡的聲音全部用程式合成，沒有任何錄音或第三方素材。授權：MIT（見 [LICENSE](LICENSE)）。
