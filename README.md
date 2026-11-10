@@ -118,6 +118,30 @@ version in the track menu to compare hand-written synthesis with the forge, part
   recordings or third-party samples. `bash lofi-forge/src/build.sh` and `bash nordic-forge/src/build.sh` rebuild them
   (Python with earshot, numpy and scipy, plus ffmpeg); each `make_*_forge.py` lists every part and its bank id.
 
+## Electric-piano versions: a physical Rhodes on the forge dsp
+
+`?project=lofi-epiano/` and `?project=nordic-epiano/` are the two forge versions with their kalimba keys and piano
+swapped for a Rhodes-style electric piano, computed from physics in [`epiano/epiano.py`](epiano/epiano.py): a felt
+hammer whose contact time shortens on harder blows, a tine and its tonebar as two coupled modes (a slow 0.9 Hz beat
+and a long sustain), and an electromagnetic pickup whose bell-shaped field adds even harmonics and, on hard notes,
+the "bark". Preset D is used: Mark I voicing (only the 0.7-0.8 notes bark a little), a Suitcase-style amp and its
+3.2 Hz panning tremolo. It is built on the forge dsp of [earshot](https://github.com/Leonxlnx/earshot) (MIT, Leon
+Lin; same pinned commit `4ac3d2ac2b151e1c23376f9ce7f3047a17050013`), rewriting the tine model of its `pluck` recipe.
+
+- Live: https://vulture-s.github.io/sfx-mixer/?project=lofi-epiano/ and https://vulture-s.github.io/sfx-mixer/?project=nordic-epiano/
+- **nordic-epiano**: piano-1/2/3 are the original motif (same notes, timing, velocities and jitter seed) on preset D.
+  Everything else (pads, drone, snow, wind, the forge bells) is copied from `nordic-forge/`.
+- **lofi-epiano**: the keys are the original voicings, 12 ms strum, swing, tape wow and 4.3 Hz tremolo on preset D,
+  with the amp drive halved for the chords (each tine has its own pickup, so only the shared amp mixes the notes of a
+  chord; the drive is set so a four-note chord intermodulates no more than the approved motif does) and the amp's own
+  tremolo off, so it does not beat against the original's. The melody stays the forge kalimba; everything else is
+  copied from `lofi-forge/`.
+- The new cues' base `vol` is lowered by the measured loudness gap against the forge parts they replace (ffmpeg
+  ebur128, 5.3-5.8 dB: the pickup's sustained tone is louder at the same peak).
+- Every sample is computed with numpy and scipy; no bank entry, recording or third-party sample is used, so these
+  demos also contain no recordings or third-party samples. `bash lofi-epiano/src/build.sh` and
+  `bash nordic-epiano/src/build.sh` rebuild them; each `make_*_epiano.py` lists every part and its source.
+
 The page's track menu (under the play bar) switches between the demos.
 
 ## License
@@ -171,5 +195,12 @@ MIT — see [LICENSE](LICENSE).
 - **nordic-forge**：鋼琴動機用 `pluck/kalimba_ring`，高音鈴用 `mallet/glock`。pad、嗡鳴、雪地腳步、風聲維持原版合成。
 - forge 聲部的 cue `vol` 依實測響度差（ffmpeg ebur128，3–7 dB）調高，其他設定不變。
 - forge 只用 numpy／scipy 運算，也沒有用到 `fit/*` 條目，所以這兩個示範一樣沒有任何錄音或第三方素材。
+
+**電鋼琴版（`lofi-epiano/`、`nordic-epiano/`）**：把兩個 forge 版的 kalimba 電鋼琴換成 Rhodes 風格的電鋼琴，聲音由 [`epiano/epiano.py`](epiano/epiano.py) 依物理模型算出：毛氈琴槌（敲得越重、接觸時間越短，聲音越亮也越大聲）、音叉與音棒兩個耦合模態（0.9 Hz 的慢拍頻和長延音），以及電磁拾音器（鐘形磁場帶出偶次泛音，重音時出現「咬聲」）。用的是 D 配方：Mark I 式的調聲（只有力度 0.7–0.8 的音會微微咬）、Suitcase 式音箱和 3.2 Hz 左右聲道 tremolo。它建立在 [earshot](https://github.com/Leonxlnx/earshot)（MIT，Leon Lin；同樣鎖在 commit `4ac3d2ac2b151e1c23376f9ce7f3047a17050013`）的 forge dsp 上，改寫自它 `pluck` 配方的音叉模型。
+- 網址：<https://vulture-s.github.io/sfx-mixer/?project=lofi-epiano/>、<https://vulture-s.github.io/sfx-mixer/?project=nordic-epiano/>
+- **nordic-epiano**：piano-1/2/3 照原版動機（音符、時間、力度、抖動種子都相同）用 D 配方重做。其餘（pad、嗡鳴、雪地腳步、風聲、forge 高音鈴）直接沿用 `nordic-forge/`。
+- **lofi-epiano**：電鋼琴照原版和弦音、12 ms 由低到高的 strum、swing、磁帶 wow 和 4.3 Hz tremolo 用 D 配方重做；和弦把音箱推力減半（每根音叉有自己的拾音器，只有共用的音箱會讓和弦內的音互調，推力調到四音和弦的互調不超過已確認的動機），並關掉音箱自己的 tremolo，免得跟原版的打拍。旋律維持 forge 的 kalimba，其餘直接沿用 `lofi-forge/`。
+- 新聲部的 cue `vol` 依跟被取代的 forge 聲部的實測響度差（ffmpeg ebur128，5.3–5.8 dB）調低。
+- 全部用 numpy／scipy 運算，沒有用到音色庫條目、錄音或第三方素材，所以這兩個示範一樣沒有任何錄音或第三方素材。
 
 `demo/` 裡的聲音全部用程式合成，沒有任何錄音或第三方素材。授權：MIT（見 [LICENSE](LICENSE)）。
