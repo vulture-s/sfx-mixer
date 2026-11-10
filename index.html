@@ -540,7 +540,7 @@ window.__mixer = { applySettings: o => applySettings(o), lookahead: (b, c, l, r)
 // ---------- realtime ----------
 let ctx = null, live = null, analyser = null, splitL = null, anLR = null;
 // the tracks the menu offers (project folders next to index.html)
-const TRACKS = [{ p: "demo/", t: "Demo · SFX to picture" }, { p: "lofi/", t: "2 a.m. rain · lofi" }, { p: "nordic/", t: "Fjord, 4 a.m. · ambient" }, { p: "lofi-forge/", t: "2 a.m. rain · lofi (forge)" }, { p: "nordic-forge/", t: "Fjord, 4 a.m. · ambient (forge)" }];
+const TRACKS = [{ p: "demo/", t: "Demo · SFX to picture" }, { p: "lofi/", t: "2 a.m. rain · lofi" }, { p: "nordic/", t: "Fjord, 4 a.m. · ambient" }, { p: "lofi-forge/", t: "2 a.m. rain · lofi (forge)" }, { p: "nordic-forge/", t: "Fjord, 4 a.m. · ambient (forge)" }, { p: "lofi-epiano/", t: "2 a.m. rain · lofi (forge epiano)" }, { p: "nordic-epiano/", t: "Fjord, 4 a.m. · ambient (forge epiano)" }];
 function stop() { if (live) { live.sources.forEach(s => { try { s.stop(); } catch (e) {} }); live.out.disconnect(); live = null; } }
 function start() {
   if (!ctx) return;
