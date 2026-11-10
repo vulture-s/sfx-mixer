@@ -6,7 +6,7 @@ A small, single-page sound-to-picture mixer for short films and motion graphics.
 
 | Demo | Link |
 |---|---|
-| Brand-film SFX demo (32 s) | <https://vulture-s.github.io/sfx-mixer/> |
+| Demo session (32 s: UI clicks, typing, whoosh) | <https://vulture-s.github.io/sfx-mixer/> |
 | 2 a.m. rain (lofi + ambience) | <https://vulture-s.github.io/sfx-mixer/?project=lofi/> |
 | Fjord, 4 a.m. (ambient) | <https://vulture-s.github.io/sfx-mixer/?project=nordic/> |
 
@@ -114,7 +114,7 @@ MIT — see [LICENSE](LICENSE).
 
 | Demo | 網址 |
 |---|---|
-| 品牌片音效 demo（32 秒） | <https://vulture-s.github.io/sfx-mixer/> |
+| Demo session（32 秒：UI 點擊、打字、whoosh） | <https://vulture-s.github.io/sfx-mixer/> |
 | 2 a.m. rain（lofi＋環境音） | <https://vulture-s.github.io/sfx-mixer/?project=lofi/> |
 | Fjord, 4 a.m.（ambient） | <https://vulture-s.github.io/sfx-mixer/?project=nordic/> |
 
