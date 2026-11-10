@@ -2,6 +2,14 @@
 
 A small, single-page sound-to-picture mixer for short films and motion graphics. It runs in the browser with no build step and no dependencies. You place one-shot sound effects on frames, then mix them against a music bed like you would in a DAW. When you're done, export the result as a WAV file or save the session as JSON.
 
+**Try it online:** <https://vulture-s.github.io/sfx-mixer/>
+
+| Demo | Link |
+|---|---|
+| Demo session (32 s: UI clicks, typing, whoosh) | <https://vulture-s.github.io/sfx-mixer/> |
+| 2 a.m. rain (lofi + ambience) | <https://vulture-s.github.io/sfx-mixer/?project=lofi/> |
+| Fjord, 4 a.m. (ambient) | <https://vulture-s.github.io/sfx-mixer/?project=nordic/> |
+
 - **Mix window**: one channel strip per track (music bed + each cue), with mute / solo (Pro Tools rules: any solo ⇒ only soloed tracks play; mute beats solo), fader, pan, send, room / hall return and an insert rack.
 - **Edit window**: a timeline of every cue, with a playhead. Click anywhere on it to jump.
 - **Insert rack** (per track): pitch / start / attack / length, filter with sweep, lo-fi (drive, bit depth, sample-rate reduction), beat-synced stutter, Euclidean choke gate, tempo delay and tape stop. The rhythmic and lo-fi modules are printed into a new buffer before playback, so what you hear in real time matches the exported file.
@@ -101,6 +109,14 @@ MIT — see [LICENSE](LICENSE).
 # SFX Mixer（中文）
 
 一頁式的音效對畫面混音器，打開瀏覽器就能用，不用建置，也沒有任何相依套件。把單發音效放在指定的影格上，再像在 DAW 裡一樣和配樂一起混音，完成後匯出 WAV，或把設定存成 JSON。
+
+**線上試用：** <https://vulture-s.github.io/sfx-mixer/>
+
+| Demo | 網址 |
+|---|---|
+| Demo session（32 秒：UI 點擊、打字、whoosh） | <https://vulture-s.github.io/sfx-mixer/> |
+| 2 a.m. rain（lofi＋環境音） | <https://vulture-s.github.io/sfx-mixer/?project=lofi/> |
+| Fjord, 4 a.m.（ambient） | <https://vulture-s.github.io/sfx-mixer/?project=nordic/> |
 
 - **Mix 視窗**：每軌一條（配樂一條，每個 cue 各一條），有 M／S（規則同 Pro Tools：任何一軌開 solo，就只聽得到 solo 的軌；mute 比 solo 優先）、推桿、pan、send、room／hall 回送，以及 Insert 效果架。
 - **Edit 視窗**：所有 cue 排在時間軸上，有播放線，點時間軸任何位置就能跳過去。
